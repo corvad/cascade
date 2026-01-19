@@ -21,6 +21,11 @@ func main() {
 		olympic.Shutdown()
 		os.Exit(0)
 	}()
-	olympic.Init("olympic.db", "testing-token-do-not-use-in-production-insecure-token")
+	dbFile := os.Getenv("DB_FILE")
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if dbFile == "" || jwtSecret == "" {
+		log.Fatal("Environment variables DB_FILE and JWT_SECRET must be set")
+	}
+	olympic.Init(dbFile, jwtSecret)
 	olympic.Run(8080)
 }

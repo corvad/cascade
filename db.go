@@ -21,9 +21,10 @@ type Query struct {
 
 type Link struct {
 	gorm.Model
-	Url   string
-	Count int
-	Owner uint
+	Url      string
+	ShortUrl string
+	Count    int
+	Owner    uint
 }
 
 type Login struct {

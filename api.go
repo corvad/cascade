@@ -10,9 +10,9 @@ import (
 
 var database *DB
 var accountManager *AccountManager
+var linkManager *LinkManager
 
 func createAccount(c *gin.Context) {
-
 	c.Request.ParseForm()
 	email := c.Request.Form.Get("email")
 	password := c.Request.Form.Get("password")
@@ -49,25 +49,115 @@ func login(c *gin.Context) {
 }
 
 func createLink(c *gin.Context) {
-
 	c.Request.ParseForm()
+	accountID, err := checkJWTMiddleware(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status": "error",
+		})
+		log.Println("JWT validation error:", err)
+		return
+	}
 	url := c.Request.Form.Get("url")
-
+	shortUrl := c.Request.Form.Get("shortUrl")
+	err = linkManager.CreateLink(url, shortUrl, accountID)
+	statusCode := http.StatusBadRequest
+	if err == ErrShortUrlExists {
+		statusCode = http.StatusConflict
+	}
+	if err != nil {
+		c.JSON(statusCode, gin.H{
+			"status": "error",
+		})
+		log.Println("CreateLink error:", err)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-		"url":    url,
+		"status":   "ok",
+		"url":      url,
+		"shortUrl": shortUrl,
 	})
 }
 
 func getLink(c *gin.Context) {
-
 	c.Request.ParseForm()
-	url := c.Request.Form.Get("url")
+	_, err := checkJWTMiddleware(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status": "error",
+		})
+		log.Println("JWT validation error:", err)
+		return
+	}
+	shortUrl := c.Request.Form.Get("shortUrl")
+	url, err := linkManager.GetLink(shortUrl)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+		})
+		log.Println("GetLink error:", err)
+		return
+	}
+	c.Redirect(http.StatusTemporaryRedirect, url)
+}
 
+func refreshJWT(c *gin.Context) {
+	c.Request.ParseForm()
+	refreshToken := c.Request.Form.Get("refreshToken")
+	login, err := accountManager.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status": "error",
+		})
+		log.Println("RefreshJWT validation error:", err)
+		return
+	}
+	newJWT, err := accountManager.GenerateJWT(login.AccountID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status": "error",
+		})
+		log.Println("RefreshJWT error:", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":   "ok",
+		"jwtToken": newJWT,
+	})
+}
+
+func logout(c *gin.Context) {
+	c.Request.ParseForm()
+	refreshToken := c.Request.Form.Get("refreshToken")
+	login, err := accountManager.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status": "error",
+		})
+		log.Println("Logout error:", err)
+		return
+	}
+	err = accountManager.Logout(login)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "error",
+		})
+		log.Println("Logout error:", err)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
-		"url":    url,
 	})
+}
+
+func checkJWTMiddleware(c *gin.Context) (uint, error) {
+	jwtToken := c.Request.Form.Get("jwtToken")
+	accountID, err := accountManager.ValidateJWT(jwtToken)
+	if err != nil {
+		log.Println("JWT validation error:", err)
+		return 0, err
+	}
+	return accountID, nil
 }
 
 func registerRoutes(r *gin.Engine) {
@@ -76,6 +166,8 @@ func registerRoutes(r *gin.Engine) {
 	r.GET("/api/createLink", createLink)
 	r.GET("/api/getLink", getLink)
 	r.GET("/api/login", login)
+	r.GET("/api/refreshJWT", refreshJWT)
+	r.GET("/api/logout", logout)
 }
 
 func Init(dbName string, jwtSigningSecret string) {
@@ -86,6 +178,7 @@ func Init(dbName string, jwtSigningSecret string) {
 	}
 	log.Println("Connected to Database:", dbName)
 	accountManager = &AccountManager{db: database.DB, jwtSigningSecret: jwtSigningSecret}
+	linkManager = &LinkManager{db: database.DB}
 }
 
 func Run(port int) {
@@ -93,17 +186,7 @@ func Run(port int) {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
-
-	// Define a simple GET endpoint
-	r.GET("/ping", func(c *gin.Context) {
-		// Return JSON response
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
-
 	registerRoutes(r)
-
 	log.Printf("Starting server on port %d...", port)
 	r.Run(":" + fmt.Sprintf("%d", port))
 }
