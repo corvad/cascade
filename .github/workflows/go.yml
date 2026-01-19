@@ -11,7 +11,7 @@ on:
 
 jobs:
 
-  build:
+  build-amd64-linux:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -22,4 +22,30 @@ jobs:
         go-version-file: 'go.mod'
 
     - name: Build
-      run: go build -v
+      run: make build
+      
+    - name: Upload olympic as aftifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: olympic-amd64-linux
+        path: olympic
+
+
+  build-arm64-linux:
+    runs-on: ubuntu-latest-arm64
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Build
+      run: make build
+
+    - name: Upload olympic as aftifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: olympic-arm64-linux
+        path: olympic
