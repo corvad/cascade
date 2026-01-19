@@ -33,3 +33,6 @@ go.work.sum
 
 # Add db files
 *.db
+
+# Add binary file
+olympic
