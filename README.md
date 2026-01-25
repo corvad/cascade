@@ -28,7 +28,7 @@ fly secrets set JWT_SECRET=your-secure-random-string-here
 
 3. Create a volume for database persistence (first time only):
 ```bash
-fly volumes create cascade_data --size 1
+fly volumes create cascade_data --size 10
 ```
 
 4. Deploy:

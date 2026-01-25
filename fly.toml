@@ -2,7 +2,7 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 
 app = 'cascade'
-primary_region = 'sjc'
+primary_region = 'dfw'
 
 [build]
   [build.args]
@@ -28,7 +28,7 @@ primary_region = 'sjc'
 [mounts]
   source = 'cascade_data'
   destination = '/data'
-  initial_size = '1GB'
+  initial_size = '10GB'
 
 [[vm]]
   size = 'shared-cpu-1x'
