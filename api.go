@@ -28,8 +28,7 @@ var cookie = &http.Cookie{
 	Value:    "",
 	HttpOnly: true,
 	Secure:   true,
-	SameSite: http.SameSiteStrictMode,
-	Path:     "/",
+	SameSite: http.SameSiteLaxMode,
 	MaxAge:   3600 * 24 * 7, // 7 days
 }
 
@@ -116,13 +115,13 @@ func createLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func getLink(w http.ResponseWriter, r *http.Request) {
-	_, ok := r.Context().Value("accountID").(uint)
+	accountID, ok := r.Context().Value("accountID").(uint)
 	if !ok {
 		errorResponse(w, http.StatusUnauthorized, "GetLink missing accountID in context")
 		return
 	}
 	shortUrl := r.URL.Path[len("/getLink/"):]
-	url, err := linkManager.GetLink(shortUrl)
+	url, err := linkManager.GetLink(shortUrl, accountID)
 	if err != nil {
 		errorResponse(w, http.StatusBadRequest, "GetLink error")
 		return

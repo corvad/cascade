@@ -62,6 +62,14 @@ func (kv *KVStore) Exists(key string) (bool, error) {
 	return exists, nil
 }
 
+func (kv *KVStore) Increment(key string) error {
+	err := kv.client.Do(kv.ctx, kv.client.B().Incr().Key(key).Build()).Error()
+	if err != nil {
+		return fmt.Errorf("Failed to increment key:%s : %w", key, err)
+	}
+	return nil
+}
+
 func (kv *KVStore) Close() {
 	kv.client.Close()
 	log.Println("KV store connection closed.")

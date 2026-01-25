@@ -30,6 +30,7 @@ func authMiddleware(h http.HandlerFunc, t string) http.HandlerFunc {
 				errorResponse(w, http.StatusUnauthorized, fmt.Sprintf("AuthMiddleware missing JWT: %v", err))
 				return
 			}
+			w.Header().Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
 		} else {
 			jwt = jwt[len("Bearer "):]
 			id, err = accountManager.ValidateJWT(jwt)
