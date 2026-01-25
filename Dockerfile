@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the application using Makefile
-RUN CGO_ENABLED=0 make build && mv cascade.bin cascade
+RUN make build && mv cascade.bin cascade
 
 # Final stage
 FROM alpine:latest
